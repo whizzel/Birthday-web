@@ -79,9 +79,9 @@ const BACKGROUND_FADE_START = Math.max(
 const TYPED_LINES = [
   "> prajakta",
   "...",
-  "> today is your birthday",
+  "> today is your birthday....",
   "...",
-  "> so i made you this program",
+  "> so i made this shitt** for you.",
   "...",
   "٩(◕‿◕)۶ ٩(◕‿◕)۶ ٩(◕‿◕)۶"
 ];
@@ -511,11 +511,20 @@ export default function App() {
 
     window.addEventListener("click", handleClick);
     window.addEventListener("keydown", handleKeyDown, { capture: true });
+    
+    // Auto-start after 1 second
+    const autoStartTimer = window.setTimeout(() => {
+      if (!hasStarted) {
+        handleInteraction();
+      }
+    }, 1000);
+    
     return () => {
       window.removeEventListener("click", handleClick);
       window.removeEventListener("keydown", handleKeyDown, { capture: true });
+      clearTimeout(autoStartTimer);
     };
-  }, [handleInteraction]);
+  }, [handleInteraction, hasStarted]);
 
   const handleCardToggle = useCallback((id: string) => {
     setActiveCardId((current) => (current === id ? null : id));
@@ -549,7 +558,10 @@ export default function App() {
         </div>
       </div>
       {hasAnimationCompleted && isCandleLit && (
-        <div className="hint-overlay">press space or click to blow out the candle</div>
+        <div className="hint-overlay text-black text-center">press space or click to blow out the candle</div>
+      )}
+      {!isCandleLit && (
+        <div className="hint-overlay text-black text-center">now click on that fu*king card</div>
       )}
       <Canvas
         gl={{ alpha: true }}

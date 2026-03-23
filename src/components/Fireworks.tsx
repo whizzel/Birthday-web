@@ -14,10 +14,10 @@ type FireworksProps = {
   origin?: [number, number, number];
 };
 
-const FIREWORK_COUNT = 100;
-const PARTICLES_PER_FIREWORK = 10;
+const FIREWORK_COUNT = 150;
+const PARTICLES_PER_FIREWORK = 60;
 const TOTAL_PARTICLES = FIREWORK_COUNT * PARTICLES_PER_FIREWORK;
-const GRAVITY = -4;
+const GRAVITY = -8;
 
 type FireworkData = {
   positions: Float32Array;
@@ -27,6 +27,8 @@ type FireworkData = {
   colors: Float32Array;
   ages: Float32Array;
   lifetimes: Float32Array;
+  explosionDelays: Float32Array;
+  hasExploded: Float32Array;
 };
 
 const randomColor = () => {
@@ -50,6 +52,8 @@ export function Fireworks({ isActive, origin = [0, 5, -14] }: FireworksProps) {
       colors: new Float32Array(TOTAL_PARTICLES * 3),
       ages: new Float32Array(TOTAL_PARTICLES),
       lifetimes: new Float32Array(TOTAL_PARTICLES),
+      explosionDelays: new Float32Array(TOTAL_PARTICLES),
+      hasExploded: new Float32Array(TOTAL_PARTICLES),
     };
   }
 
@@ -62,24 +66,29 @@ export function Fireworks({ isActive, origin = [0, 5, -14] }: FireworksProps) {
       colors,
       ages,
       lifetimes,
+      explosionDelays,
+      hasExploded,
     } = dataRef.current!;
 
     const baseIndex = index * 3;
     const burstOrigin = baseOrigin
       .clone()
-      .add(new Vector3((Math.random() - 0.5) * 1000, Math.random() * 200, (Math.random() - 0.5) * 1000));
+      .add(new Vector3((Math.random() - 0.5) * 2000, Math.random() * 200, (Math.random() - 0.5) * 2000));
 
     origins[baseIndex] = burstOrigin.x;
     origins[baseIndex + 1] = burstOrigin.y;
     origins[baseIndex + 2] = burstOrigin.z;
 
-    const theta = Math.random() * Math.PI * 2;
-    const phi = Math.acos(Math.random() * 2 - 1)* 0.9;
-    const speed = 1 + Math.random() * 1.4;
+    // Skyshot effect: rocket goes up first, then explodes
+    const explosionDelay = 0.5 + Math.random() * 1.5;
+    explosionDelays[index] = explosionDelay;
+    hasExploded[index] = 0;
 
-    velocities[baseIndex] = Math.sin(phi) * Math.cos(theta) * speed;
-    velocities[baseIndex + 1] = Math.cos(phi) * (speed * 1.2);
-    velocities[baseIndex + 2] = Math.sin(phi) * Math.sin(theta) * speed;
+    // Initial rocket velocity (going up)
+    const rocketSpeed = 8 + Math.random() * 4;
+    velocities[baseIndex] = (Math.random() - 0.5) * 2;
+    velocities[baseIndex + 1] = rocketSpeed;
+    velocities[baseIndex + 2] = (Math.random() - 0.5) * 2;
 
     const color = randomColor();
     baseColors[baseIndex] = color.r;
@@ -94,8 +103,8 @@ export function Fireworks({ isActive, origin = [0, 5, -14] }: FireworksProps) {
     positions[baseIndex + 1] = burstOrigin.y;
     positions[baseIndex + 2] = burstOrigin.z;
 
-    lifetimes[index] = 1.6 + Math.random() * 1.3;
-    ages[index] = -Math.random() * 1.2;
+    lifetimes[index] = 4 + Math.random() * 3;
+    ages[index] = -Math.random() * 1;
   };
 
   useEffect(() => {
@@ -113,7 +122,7 @@ export function Fireworks({ isActive, origin = [0, 5, -14] }: FireworksProps) {
       return;
     }
 
-    const { positions, velocities, origins, colors, baseColors, ages, lifetimes } =
+    const { positions, velocities, origins, colors, baseColors, ages, lifetimes, explosionDelays, hasExploded } =
       data;
     const positionAttr = geometry.getAttribute("position") as BufferAttribute;
     const colorAttr = geometry.getAttribute("color") as BufferAttribute;
@@ -123,7 +132,7 @@ export function Fireworks({ isActive, origin = [0, 5, -14] }: FireworksProps) {
       return;
     }
 
-    material.opacity = MathUtils.damp(material.opacity, 0.85, 2.5, delta);
+    material.opacity = MathUtils.damp(material.opacity, 0.95, 2.5, delta);
 
     for (let i = 0; i < TOTAL_PARTICLES; i += 1) {
       const idx3 = i * 3;
@@ -139,19 +148,30 @@ export function Fireworks({ isActive, origin = [0, 5, -14] }: FireworksProps) {
         continue;
       }
 
-      if (ages[i] > lifetimes[i] || positions[idx3 + 1] < baseOrigin.y - 1.5) {
+      if (ages[i] > lifetimes[i] || positions[idx3 + 1] < baseOrigin.y - 2) {
         resetParticle(i);
         continue;
       }
 
       const age = ages[i];
+      
+      // Skyshot logic: rocket goes up, then explodes
+      if (hasExploded[i] === 0 && age >= explosionDelays[i]) {
+        // EXPLODE! Create flower burst pattern
+        hasExploded[i] = 1;
+        const theta = Math.random() * Math.PI * 2;
+        const phi = Math.acos(Math.random() * 2 - 1) * 0.9;
+        const burstSpeed = 4 + Math.random() * 6;
+        
+        velocities[idx3] = Math.sin(phi) * Math.cos(theta) * burstSpeed;
+        velocities[idx3 + 1] = Math.cos(phi) * (burstSpeed * 1.5);
+        velocities[idx3 + 2] = Math.sin(phi) * Math.sin(theta) * burstSpeed;
+      }
 
-      positions[idx3] =
-        origins[idx3] + velocities[idx3] * age;
-      positions[idx3 + 1] =
-        origins[idx3 + 1] + velocities[idx3 + 1] * age + 0.5 * GRAVITY * age * age;
-      positions[idx3 + 2] =
-        origins[idx3 + 2] + velocities[idx3 + 2] * age;
+      // Update position based on current velocity
+      positions[idx3] = origins[idx3] + velocities[idx3] * age;
+      positions[idx3 + 1] = origins[idx3 + 1] + velocities[idx3 + 1] * age + 0.5 * GRAVITY * age * age;
+      positions[idx3 + 2] = origins[idx3 + 2] + velocities[idx3 + 2] * age;
 
       const fade = Math.max(0, 1 - age / lifetimes[i]);
       colors[idx3] = baseColors[idx3] * fade;
@@ -178,7 +198,7 @@ export function Fireworks({ isActive, origin = [0, 5, -14] }: FireworksProps) {
         </bufferGeometry>
         <pointsMaterial
           ref={materialRef}
-          size={1}
+          size={2}
           transparent
           vertexColors
           depthWrite={false}
