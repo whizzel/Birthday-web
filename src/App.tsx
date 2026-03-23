@@ -486,7 +486,7 @@ export default function App() {
     return () => window.clearInterval(handle);
   }, []);
 
-  const handleInteraction = useCallback((event?: Event) => {
+  const handleInteraction = useCallback(() => {
     if (!hasStarted) {
       playBackgroundMusic();
       setHasStarted(true);
@@ -499,14 +499,14 @@ export default function App() {
   }, [hasStarted, hasAnimationCompleted, isCandleLit, playBackgroundMusic]);
 
   useEffect(() => {
-    const handleClick = (event: MouseEvent) => {
-      handleInteraction(event);
+    const handleClick = (_event: MouseEvent) => {
+      handleInteraction();
     };
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.code === "Space" || event.key === " ") {
         event.preventDefault();
         event.stopPropagation();
-        handleInteraction(event);
+        handleInteraction();
       }
     };
 
