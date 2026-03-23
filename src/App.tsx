@@ -487,7 +487,6 @@ export default function App() {
   }, []);
 
   const handleInteraction = useCallback((event?: Event) => {
-    event?.preventDefault();
     if (!hasStarted) {
       playBackgroundMusic();
       setHasStarted(true);
@@ -500,7 +499,9 @@ export default function App() {
   }, [hasStarted, hasAnimationCompleted, isCandleLit, playBackgroundMusic]);
 
   useEffect(() => {
-    const handleClick = (event: MouseEvent) => handleInteraction(event);
+    const handleClick = (event: MouseEvent) => {
+      handleInteraction(event);
+    };
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.code === "Space" || event.key === " ") {
         event.preventDefault();
@@ -512,19 +513,11 @@ export default function App() {
     window.addEventListener("click", handleClick);
     window.addEventListener("keydown", handleKeyDown, { capture: true });
     
-    // Auto-start after 1 second
-    const autoStartTimer = window.setTimeout(() => {
-      if (!hasStarted) {
-        handleInteraction();
-      }
-    }, 1000);
-    
     return () => {
       window.removeEventListener("click", handleClick);
       window.removeEventListener("keydown", handleKeyDown, { capture: true });
-      clearTimeout(autoStartTimer);
     };
-  }, [handleInteraction, hasStarted]);
+  }, [handleInteraction]);
 
   const handleCardToggle = useCallback((id: string) => {
     setActiveCardId((current) => (current === id ? null : id));
