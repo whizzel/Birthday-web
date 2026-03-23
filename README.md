@@ -1,4 +1,4 @@
-# 🎂 Birthday Cake from Crush
+# 🎂 Birthday Cake for _____
 
 A romantic 3D birthday celebration experience built with React Three Fiber - an interactive digital surprise for your special someone!
 
@@ -26,7 +26,7 @@ A romantic 3D birthday celebration experience built with React Three Fiber - an 
 ```bash
 # Clone the repository
 git clone <your-repo-url>
-cd birthday-cake-from-crush
+cd birthday-cake-for _____
 
 # Install dependencies
 npm install
